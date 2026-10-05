@@ -3,9 +3,12 @@ use std::sync::Arc;
 use axum::{Router, routing::get};
 use dotenv::dotenv;
 use sqlx::{PgPool, postgres::PgPoolOptions};
+
+use crate::routes::create_router;
 mod handlers;
 mod model;
 mod schema;
+mod routes;
 
 pub struct AppState {
     db: PgPool
@@ -32,9 +35,7 @@ async fn main() {
         }
     };
 
-    let app = Router::new().
-    route("/api", get(handlers::hello_dunia))
-    .with_state(Arc::new(AppState { db: pool.clone()}));
+    let app =create_router(Arc::new(AppState { db: pool.clone()}));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
 

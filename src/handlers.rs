@@ -5,15 +5,6 @@ use serde_json::json;
 
 use crate::{AppState, model::GameModel, schema::GameSchema};
 
-pub async fn hello_dunia() -> impl IntoResponse{
- let my_response = json!({
-    "status": "success",
-    "message": "Niajee wanangu"
- });
-
- Json(my_response)
-}
-
 pub async fn create_game_handler(
    State(data) : State<Arc<AppState>>,
    Json(body) : Json<GameSchema>
