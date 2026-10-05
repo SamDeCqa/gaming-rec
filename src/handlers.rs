@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
-use serde_json::json;
+use serde_json::{Value, json};
 
 use crate::{AppState, model::GameModel, schema::GameSchema};
 
@@ -47,4 +47,30 @@ pub async fn create_game_handler(
    });
 
    Ok(Json(game_response))
+}
+
+pub async fn game_list_handler(
+   State(data) : State<Arc<AppState>>
+)-> Result<impl IntoResponse, (StatusCode, Json<Value>)>{
+   let games = sqlx::query_as!(
+      GameModel,
+      r#"SELECT * FROM games ORDER BY created_at"#
+   ).fetch_all(&data.db)
+   .await
+   .map_err(|e|{
+      let error_response = json!({
+         "status" : "error",
+         "message" : format!("Database Error: {}", e)
+      });
+
+      (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+   })?;
+
+   let games_response = json!({
+      "status" : "success",
+      "count" : games.len(),
+      "data" : games
+   });
+
+   Ok(Json(games_response))
 }
