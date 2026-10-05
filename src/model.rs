@@ -6,6 +6,6 @@ pub struct GameModel {
     pub id: Uuid,
     pub name : String,
     pub creator : String,
-    pub plays : u32,
+    pub plays : i32,
     pub created_at : Option<chrono::DateTime<chrono::Utc>>
 }

@@ -4,5 +4,5 @@ use serde::{Deserialize, Serialize};
 pub struct GameSchema {
     pub name : String,
     pub creator : String,
-    pub plays : u32
+    pub plays : i32
 }
