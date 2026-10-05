@@ -121,11 +121,11 @@ pub async fn delete_game_handler(
    State(data) : State<Arc<AppState>>
 )->Result<impl IntoResponse, (StatusCode, Json<Value>)>{
 
-   let query_result = query_as!(
+   let query_result = sqlx::query_as!(
       GameModel,
-      r#"DELETE FROM games WHERE id = $1"#,
+      r#"DELETE FROM games WHERE id = $1 RETURNING *"#,
       game_id
-   ).execute(&data.db)
+   ).fetch_one(&data.db)
    .await;
 
    match query_result {
