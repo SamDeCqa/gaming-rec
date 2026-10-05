@@ -4,6 +4,7 @@ use axum::{Router, routing::get};
 use dotenv::dotenv;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 mod handlers;
+mod model;
 
 pub struct AppState {
     db: PgPool
