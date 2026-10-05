@@ -115,3 +115,41 @@ pub async fn get_game_handler(
        ))
    }
 }
+
+pub async fn delete_game_handler(
+   Path(game_id) : Path<Uuid>,
+   State(data) : State<Arc<AppState>>
+)->Result<impl IntoResponse, (StatusCode, Json<Value>)>{
+
+   let query_result = query_as!(
+      GameModel,
+      r#"DELETE FROM games WHERE id = $1"#,
+      game_id
+   ).execute(&data.db)
+   .await;
+
+   match query_result {
+      Ok(_res) => Ok(Json(json!({
+                  "status" : "success",
+                  "message" : "Game record was deleted successfully"
+               }))),
+
+      Err(sqlx::Error::RowNotFound) => {
+         let error_response = json!({
+            "status" : "error",
+            "message" : "No game with such id that was found"
+         });
+
+         Err((StatusCode::NOT_FOUND, Json(error_response)))
+      },
+
+      Err(e) => {
+         let error_response = json!({
+            "status" : "error",
+            "message" : format!("Database error: {:?}", e)
+         });
+
+         Err((StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)))
+      }
+   }
+}
