@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 use sqlx::query_as;
 use uuid::Uuid;
 
-use crate::{AppState, model::GameModel, schema::GameSchema};
+use crate::{AppState, model::{GameModel, UpdateGameModel}, schema::GameSchema};
 
 pub async fn create_game_handler(
    State(data) : State<Arc<AppState>>,
@@ -152,4 +152,70 @@ pub async fn delete_game_handler(
          Err((StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)))
       }
    }
+}
+
+pub async fn edit_game_handle(
+   Path(game_id) : Path<Uuid>,
+   State(data) : State<Arc<AppState>>,
+   Json(body) : Json<UpdateGameModel>
+)->Result<impl IntoResponse, (StatusCode, Json<Value>)>
+{
+   let query_result = sqlx::query_as!(
+      GameModel, 
+      r#"SELECT * FROM games WHERE id = $1"#,
+       &game_id
+      ).fetch_one(&data.db)
+      .await;
+
+   let game = match query_result {
+      Ok(game) => game,
+
+      Err(sqlx::Error::RowNotFound) => {
+         return Err((
+            StatusCode::NOT_FOUND, 
+            Json(json!({
+               "status" : "error", 
+               "message" : "No game record with such id that was found"
+            }))
+         ))
+      },
+
+      Err(e) => return Err((
+         StatusCode::INTERNAL_SERVER_ERROR, 
+         Json(json!({
+         "status" : "error",
+         "message" : format!("Could not delete a game record: {:?}", e)
+         }))
+      ))
+   };
+
+   let new_name = &body.name.as_ref().unwrap_or(&game.name);
+   let new_creator = &body.creator.as_ref().unwrap_or(&game.creator);
+   let new_plays = &body.plays.as_ref().unwrap_or(&game.plays);
+
+   let updated_game = sqlx::query_as!(
+      GameModel,
+      r#"UPDATE games SET name = $1, creator = $2, plays = $3 WHERE id = $4 RETURNING *"#,
+      new_name,
+      new_creator,
+      new_plays,
+      &game.id
+   ).fetch_one(&data.db)
+   .await
+   .map_err(|e| {
+      let error_response = json!({
+         "status" : "error",
+         "message" : format!("Failed to Update game record: {:?}", e)
+      });
+
+      (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+   })?;
+
+   let response = json!({
+      "status" : "success",
+      "message" : "Game record updated successfully",
+      "data" : updated_game
+   });
+
+   Ok(Json(response))
 }
